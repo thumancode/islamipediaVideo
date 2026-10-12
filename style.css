@@ -1,0 +1,29 @@
+html,body{margin:0;padding:0;width:1080px;height:1920px;overflow:hidden;background:#04201b}
+#root{position:absolute;left:0;top:0;width:1080px;height:1920px;overflow:hidden;color:#fff6dc;
+ background:linear-gradient(180deg,#04201b 0%,#0b3d33 50%,#145c4b 100%)}
+.abs,.scene,.card,.ico,.wrd,.row,.layer{position:absolute}
+.bn{font-family:'Noto Serif Bengali','Noto Sans Bengali','FreeSerif','DejaVu Sans',serif;line-height:1.4}
+.ar{font-family:'Amiri','Noto Naskh Arabic','FreeSerifBold','DejaVu Sans',serif;direction:rtl;line-height:1.5}
+.rtl{direction:rtl}
+.gold{color:#e3c26b}.cream{color:#fff6dc}
+.stage{position:absolute;left:0;top:215px;width:1080px;height:1200px}
+.scene{left:0;top:0;width:1080px;height:1200px}
+.wrd{display:flex;flex-wrap:wrap;justify-content:center;align-content:center;gap:.04em .3em;text-align:center}
+.w{display:inline-block}
+.hl{color:#e3c26b}
+.card{box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;
+ background:linear-gradient(160deg,rgba(14,74,61,.94),rgba(4,32,27,.94));border:3px solid #e3c26b;border-radius:38px;
+ box-shadow:0 0 40px rgba(227,194,107,.28),inset 0 0 36px rgba(227,194,107,.14)}
+.card.h{flex-direction:row;gap:26px;padding:0 30px}
+.card .t{font-size:50px;color:#fff6dc;line-height:1.3}
+.card .t.g{color:#e3c26b}
+.card .n{font-size:128px;color:#e3c26b;line-height:1.1;font-weight:700}
+.card .s{font-size:36px;color:#cfe9df}
+.col{display:flex;flex-direction:column;align-items:center;text-align:center}
+.row{left:0;width:1080px;text-align:center}
+.chip{display:inline-block;padding:16px 44px;border-radius:70px;color:#04201b;font-weight:700;font-size:48px;
+ background:linear-gradient(135deg,#f8e7ae,#e3c26b 55%,#a67c28);box-shadow:0 0 34px rgba(227,194,107,.45)}
+.ring{border:4px solid #e3c26b;border-radius:50%;box-sizing:border-box}
+#panel{position:absolute;left:60px;top:1445px;width:960px;height:330px;box-sizing:border-box;border-radius:44px;
+ background:rgba(2,20,17,.74);border:3px solid #e3c26b;box-shadow:0 0 36px rgba(227,194,107,.25)}
+.sub{color:#fff6dc}
