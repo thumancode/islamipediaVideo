@@ -1,8 +1,9 @@
 // Capture frames with headless Chromium (Playwright) and encode with FFmpeg.
-//   node render.js                 full video
+//   node render.js                 full video (4K portrait 2160x3840 by default)
 //   node render.js --test 10       only the first 10 seconds
 //   node render.js --still 2,10,30 PNG stills at those times (seconds)
 //   node render.js --workers 4     parallel browsers
+//   node render.js --res 1080p     render at 1080x1920 instead of 4K
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
@@ -11,6 +12,7 @@ const { chromium } = require('playwright');
 
 const OUT = 'app-video.mp4';
 const AUDIO = 'audio.mp3';
+// Layout size (CSS pixels) stays 1080x1920. Output size = layout * SCALE.
 const W = 1080, H = 1920, FPS = 30;
 
 const argv = process.argv.slice(2);
@@ -18,6 +20,11 @@ const arg = (n) => { const i = argv.indexOf('--' + n); return i >= 0 ? argv[i + 
 const testSec = arg('test') ? parseFloat(arg('test')) : null;
 const stills = arg('still') ? arg('still').split(',').map(Number) : null;
 const workers = Math.max(1, parseInt(arg('workers') || Math.min(4, os.cpus().length), 10));
+
+// 4K by default (scale 2 -> 2160x3840). Use --res 1080p for 1080x1920.
+const RES = (arg('res') || process.env.RESOLUTION || '4k').toLowerCase();
+const SCALE = RES === '1080p' ? 1 : 2;
+const OUT_W = W * SCALE, OUT_H = H * SCALE;
 
 // ---- 1. timestamps.txt -> lines.js (single source of truth) ----
 function parseLines() {
@@ -42,10 +49,10 @@ const lastEnd = Math.max(...LINES.map((l) => l.e));
 // whole seconds; never cut the voice if the audio is slightly longer than the last timestamp
 const DURATION = Math.ceil(Math.max(lastEnd, audioDuration()) - 0.001);
 fs.writeFileSync('lines.js', 'const LINES=' + JSON.stringify(LINES) + ';\nconst DURATION=' + DURATION + ';\nwindow.LINES=LINES;window.DURATION=DURATION;\n');
-console.log(`lines: ${LINES.length}, duration: ${DURATION}s, fps: ${FPS}`);
+console.log(`lines: ${LINES.length}, duration: ${DURATION}s, fps: ${FPS}, output: ${OUT_W}x${OUT_H} (scale ${SCALE})`);
 
 async function openPage(browser) {
-  const ctx = await browser.newContext({ viewport: { width: W, height: H }, deviceScaleFactor: 1 });
+  const ctx = await browser.newContext({ viewport: { width: W, height: H }, deviceScaleFactor: SCALE });
   const page = await ctx.newPage();
   page.on('pageerror', (e) => console.error('PAGE ERROR:', e.message));
   await page.goto('file://' + path.resolve('index.html'));
@@ -61,7 +68,7 @@ async function main() {
     for (const t of stills) {
       await page.evaluate((x) => window.renderAt(x), t);
       const f = `still-${String(t).replace('.', '_')}.png`;
-      await page.screenshot({ path: f, type: 'png' });
+      await page.screenshot({ path: f, type: 'png', scale: 'device' });
       console.log('wrote', f);
     }
     await browser.close();
@@ -82,7 +89,12 @@ async function main() {
     const page = await openPage(browser);
     for (let f = a; f < b; f++) {
       await page.evaluate((t) => window.renderAt(t), f / FPS);
-      await page.screenshot({ path: path.join(tmp, 'f' + String(f).padStart(5, '0') + '.jpg'), type: 'jpeg', quality: 93 });
+      await page.screenshot({
+        path: path.join(tmp, 'f' + String(f).padStart(5, '0') + '.jpg'),
+        type: 'jpeg',
+        quality: 97,
+        scale: 'device', // capture at full device pixels (2160x3840 when SCALE=2)
+      });
       done++;
       if (done % 60 === 0 || done === frames) {
         const el = (Date.now() - t0) / 1000;
@@ -97,7 +109,9 @@ async function main() {
     '-y', '-framerate', String(FPS), '-i', path.join(tmp, 'f%05d.jpg'), '-i', AUDIO,
     '-filter_complex', `[1:a]apad,atrim=0:${total}[a]`,
     '-map', '0:v', '-map', '[a]',
-    '-c:v', 'libx264', '-preset', 'medium', '-crf', '18', '-pix_fmt', 'yuv420p', '-r', String(FPS),
+    // If a frame is ever not exactly OUT_W x OUT_H, lanczos-scale it so the final file is always exact.
+    '-vf', `scale=${OUT_W}:${OUT_H}:flags=lanczos`,
+    '-c:v', 'libx264', '-preset', 'medium', '-crf', '16', '-pix_fmt', 'yuv420p', '-r', String(FPS),
     '-c:a', 'aac', '-b:a', '192k', '-movflags', '+faststart', '-shortest', OUT,
   ], { stdio: 'inherit' });
   fs.rmSync(tmp, { recursive: true, force: true });
